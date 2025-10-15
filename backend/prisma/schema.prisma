@@ -1,0 +1,151 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ChannelKind {
+  SHOPIFY
+  AMAZON
+  EBAY
+}
+
+enum ReservationStatus {
+  ACTIVE
+  CANCELLED
+  FULFILLED
+}
+
+enum MovementType {
+  ADJUSTMENT
+  RECEIPT
+  SHIPMENT
+  TRANSFER
+  RESERVATION
+}
+
+model Tenant {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  channels  Channel[]
+  locations Location[]
+}
+
+model Channel {
+  id        String      @id @default(cuid())
+  kind      ChannelKind
+  tenantId  String
+  tenant    Tenant      @relation(fields: [tenantId], references: [id])
+  shop      String?     // e.g. myshop.myshopify.com
+  apiKey    String?
+  apiSecret String?
+  token     String?
+  listings  ChannelListing[]
+  createdAt DateTime    @default(now())
+}
+
+model Location {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  name      String
+  code      String
+  levels    InventoryLevel[]
+}
+
+model Product {
+  id        String    @id @default(cuid())
+  tenantId  String
+  tenant    Tenant    @relation(fields: [tenantId], references: [id])
+  title     String
+  variants  Variant[]
+  createdAt DateTime  @default(now())
+}
+
+model Variant {
+  id         String             @id @default(cuid())
+  productId  String
+  product    Product            @relation(fields: [productId], references: [id])
+  sku        String             @unique
+  barcode    String?
+  asin       String?            // for Amazon
+  ebaySku    String?
+  bundlesAsComponent BundleComponent[]
+  levels     InventoryLevel[]
+  reservations Reservation[]
+  movements  StockMovement[]
+  listings   ChannelListing[]
+}
+
+model BundleComponent {
+  id         String  @id @default(cuid())
+  parentSku  String
+  component  Variant @relation(fields: [componentId], references: [id])
+  componentId String
+  qty        Int
+  @@index([parentSku])
+}
+
+model InventoryLevel {
+  id           String   @id @default(cuid())
+  variantId    String
+  variant      Variant  @relation(fields: [variantId], references: [id])
+  locationId   String
+  location     Location @relation(fields: [locationId], references: [id])
+  onHand       Int      @default(0)
+  reserved     Int      @default(0)
+  incoming     Int      @default(0)
+  safetyBuffer Int      @default(0)
+  updatedAt    DateTime @updatedAt
+  @@unique([variantId, locationId])
+}
+
+model Reservation {
+  id        String            @id @default(cuid())
+  variantId String
+  variant   Variant           @relation(fields: [variantId], references: [id])
+  orderId   String?
+  source    String
+  quantity  Int
+  status    ReservationStatus @default(ACTIVE)
+  createdAt DateTime          @default(now())
+}
+
+model StockMovement {
+  id        String       @id @default(cuid())
+  variantId String
+  variant   Variant      @relation(fields: [variantId], references: [id])
+  type      MovementType
+  quantity  Int
+  notes     String?
+  createdAt DateTime     @default(now())
+}
+
+model ChannelListing {
+  id         String      @id @default(cuid())
+  channelId  String
+  channel    Channel     @relation(fields: [channelId], references: [id])
+  variantId  String
+  variant    Variant     @relation(fields: [variantId], references: [id])
+  channelSku String
+  buffer     Int         @default(0)
+  minQty     Int         @default(0)
+  maxQty     Int?        // cap ATS per channel
+  priority   Int         @default(0)
+  @@unique([channelId, variantId])
+}
+
+model WebhookEvent {
+  id         String   @id @default(cuid())
+  source     String
+  externalId String   // idempotency key
+  topic      String
+  payload    Json
+  receivedAt DateTime @default(now())
+  @@unique([source, externalId])
+}
