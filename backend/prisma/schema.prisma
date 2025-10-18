@@ -28,34 +28,35 @@ enum MovementType {
 }
 
 model Tenant {
-  id        String   @id @default(cuid())
+  id        String     @id @default(cuid())
   name      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
   channels  Channel[]
   locations Location[]
+  products  Product[]
 }
 
 model Channel {
-  id        String      @id @default(cuid())
+  id        String           @id @default(cuid())
   kind      ChannelKind
   tenantId  String
-  tenant    Tenant      @relation(fields: [tenantId], references: [id])
-  shop      String?     // e.g. myshop.myshopify.com
+  tenant    Tenant           @relation(fields: [tenantId], references: [id])
+  shop      String? // e.g. myshop.myshopify.com
   apiKey    String?
   apiSecret String?
   token     String?
   listings  ChannelListing[]
-  createdAt DateTime    @default(now())
+  createdAt DateTime         @default(now())
 }
 
 model Location {
-  id        String   @id @default(cuid())
-  tenantId  String
-  tenant    Tenant   @relation(fields: [tenantId], references: [id])
-  name      String
-  code      String
-  levels    InventoryLevel[]
+  id       String           @id @default(cuid())
+  tenantId String
+  tenant   Tenant           @relation(fields: [tenantId], references: [id])
+  name     String
+  code     String
+  levels   InventoryLevel[]
 }
 
 model Product {
@@ -68,26 +69,27 @@ model Product {
 }
 
 model Variant {
-  id         String             @id @default(cuid())
-  productId  String
-  product    Product            @relation(fields: [productId], references: [id])
-  sku        String             @unique
-  barcode    String?
-  asin       String?            // for Amazon
-  ebaySku    String?
+  id                 String            @id @default(cuid())
+  productId          String
+  product            Product           @relation(fields: [productId], references: [id])
+  sku                String            @unique
+  barcode            String?
+  asin               String? // for Amazon
+  ebaySku            String?
   bundlesAsComponent BundleComponent[]
-  levels     InventoryLevel[]
-  reservations Reservation[]
-  movements  StockMovement[]
-  listings   ChannelListing[]
+  levels             InventoryLevel[]
+  reservations       Reservation[]
+  movements          StockMovement[]
+  listings           ChannelListing[]
 }
 
 model BundleComponent {
-  id         String  @id @default(cuid())
-  parentSku  String
-  component  Variant @relation(fields: [componentId], references: [id])
+  id          String  @id @default(cuid())
+  parentSku   String
+  component   Variant @relation(fields: [componentId], references: [id])
   componentId String
-  qty        Int
+  qty         Int
+
   @@index([parentSku])
 }
 
@@ -102,6 +104,7 @@ model InventoryLevel {
   incoming     Int      @default(0)
   safetyBuffer Int      @default(0)
   updatedAt    DateTime @updatedAt
+
   @@unique([variantId, locationId])
 }
 
@@ -127,25 +130,27 @@ model StockMovement {
 }
 
 model ChannelListing {
-  id         String      @id @default(cuid())
+  id         String  @id @default(cuid())
   channelId  String
-  channel    Channel     @relation(fields: [channelId], references: [id])
+  channel    Channel @relation(fields: [channelId], references: [id])
   variantId  String
-  variant    Variant     @relation(fields: [variantId], references: [id])
+  variant    Variant @relation(fields: [variantId], references: [id])
   channelSku String
-  buffer     Int         @default(0)
-  minQty     Int         @default(0)
-  maxQty     Int?        // cap ATS per channel
-  priority   Int         @default(0)
+  buffer     Int     @default(0)
+  minQty     Int     @default(0)
+  maxQty     Int? // cap ATS per channel
+  priority   Int     @default(0)
+
   @@unique([channelId, variantId])
 }
 
 model WebhookEvent {
   id         String   @id @default(cuid())
   source     String
-  externalId String   // idempotency key
+  externalId String // idempotency key
   topic      String
   payload    Json
   receivedAt DateTime @default(now())
+
   @@unique([source, externalId])
 }

@@ -5,15 +5,32 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import { router as healthRouter } from './routes/health.js';
 import { router as shopifyRouter } from './routes/shopify.js';
+import { router as adminRouter } from './routes/admin.js';
 
 const app = express();
-app.use(helmet());
+// Allow embedding inside Shopify admin iframe
+app.use(
+  helmet({
+    frameguard: false, // remove X-Frame-Options
+    contentSecurityPolicy: false, // we'll set our own CSP below
+  })
+);
+// Shopify requires these ancestors for embedded apps
+app.use((_, res, next) => {
+  res.setHeader(
+    'Content-Security-Policy',
+    "frame-ancestors https://admin.shopify.com https://*.myshopify.com"
+  );
+  next();
+});
+
 app.use(cors());
 app.use(express.json({ type: ['application/json', 'application/cloudevents+json'] }));
 app.use(morgan('dev'));
 
 app.use('/health', healthRouter);
 app.use('/shopify', shopifyRouter);
+app.use('/admin', adminRouter);
 
 app.get('/', (_req, res) => {
   res.json({ ok: true, name: 'inventory-sync-backend' });
