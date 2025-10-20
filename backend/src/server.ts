@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import bodyParser from 'body-parser';
 import { router as healthRouter } from './routes/health.js';
 import { router as shopifyRouter } from './routes/shopify.js';
 import { router as adminRouter } from './routes/admin.js';
@@ -25,6 +26,8 @@ app.use((_, res, next) => {
 });
 
 app.use(cors());
+// Important: ensure raw body for Shopify webhooks before JSON parser
+app.use('/shopify/webhook', bodyParser.raw({ type: 'application/json' }));
 app.use(express.json({ type: ['application/json', 'application/cloudevents+json'] }));
 app.use(morgan('dev'));
 

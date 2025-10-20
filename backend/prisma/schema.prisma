@@ -46,6 +46,7 @@ model Channel {
   apiKey    String?
   apiSecret String?
   token     String?
+  shopifyDefaultLocationId String?
   listings  ChannelListing[]
   createdAt DateTime         @default(now())
 }
@@ -76,6 +77,8 @@ model Variant {
   barcode            String?
   asin               String? // for Amazon
   ebaySku            String?
+  shopifyVariantId        String? @unique
+  shopifyInventoryItemId  String? @unique
   bundlesAsComponent BundleComponent[]
   levels             InventoryLevel[]
   reservations       Reservation[]
